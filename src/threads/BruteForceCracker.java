@@ -9,6 +9,7 @@ package threads;
 // Pro-tip: Do not include the creation of the threads as part of the time. 
 
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BruteForceCracker {
 	static long code = (long) (new Random().nextDouble() * 1_000_000_000);
@@ -16,25 +17,27 @@ public class BruteForceCracker {
 	static long startTime;
 	static long endTime;
 	static float elapsedTime;
-	public static boolean done = false;
+	public static AtomicBoolean done = new AtomicBoolean(false);
 
 	public static void main(String[] args) {
 		System.out.println("Starting Brute Force Checker");
 		startTime = System.currentTimeMillis();
 
 		int ctr = 0;
-		Thread t1 = new Thread(() -> checkRange(0, 500_000_000));
-		Thread t2 = new Thread(() -> checkRange(500_000_000, 1_000_000_000));
-
-		t1.start();
-		t2.start();
-		try {
-			t1.join();
-			t2.join();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		int n = 7;
+		long l = 1_000_000_000 / n;
+		Thread[] threadArray = new Thread[n];
+		for (int i = 0; i < n; i++) {
+			long min = i * l;
+			long max = (i + 1) * l;
+			threadArray[i] = new Thread(() -> checkRange(min, max));
 		}
+		for (Thread t : threadArray) {
+			t.start();
+		}
+		System.out.println(done);
+		while (done.get() == false)
+			;
 		endTime = System.currentTimeMillis();
 		elapsedTime = (float) (endTime - startTime);
 		elapsedTime /= 1000.f;
@@ -43,16 +46,18 @@ public class BruteForceCracker {
 
 	public static void checkRange(long start, long end) {
 		long ctr = start;
-		while (!done && !checkCode(ctr++) && ctr < end)
+		while (!done.get() && !checkCode(ctr++) && ctr < end)
 			;
 		if (ctr < end) {
-			done = true;
+			done.getAndSet(true);
 		}
-
+		System.out.println(ctr);
 	}
 
 	public static boolean checkCode(long p) {
 		if (p == code) {
+			System.out.println(code);
+			// done = true;
 			return true;
 		} else {
 			return false;
